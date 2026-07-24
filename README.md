@@ -1,10 +1,18 @@
-#Discord bot untuk membantu pengelolaan tugas kuliah.
+Discord bot untuk membantu pengelolaan tugas kuliah.
+
+## Features
+
+- Slash Commands
+- Reminder
+- Dashboard
+- JSON Database
+- SQLite (planned)
 
 ## Roadmap
 
-- [x] Bot online
+- [x] Bot Online
+- [x] Git
 - [ ] Slash Commands
-- [ ] Tugas
+- [ ] Permission
+- [ ] Database
 - [ ] Reminder
-- [ ] Dashboard
-- [ ] SQLite
