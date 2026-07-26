@@ -22,14 +22,19 @@ module.exports = (client) => {
 
             const command = require(filePath);
 
+            if (!command.data) {
+                console.log(`⏭️ Dilewati : ${file}`);
+                continue;
+            }
+
             client.commands.set(command.data.name, command);
 
             console.log(`✅ Command dimuat : ${command.data.name}`);
 
-        }
+                    }
 
-    }
+                }
 
-    load(commandsPath);
+                load(commandsPath);
 
 };

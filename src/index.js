@@ -1,17 +1,55 @@
 require("dotenv").config();
 
-const { Client, GatewayIntentBits, Collection } = require("discord.js");
+const {
+    Client,
+    GatewayIntentBits,
+    Collection
+} = require("discord.js");
 
-const loadEvents = require("./handlers/eventHandler");
-const loadCommands = require("./handlers/commandHandler");
 
-const client = new Client({
-    intents: [GatewayIntentBits.Guilds]
-});
+const loadEvents =
+    require("./handlers/eventHandler");
 
-client.commands = new Collection();
+const loadCommands =
+    require("./handlers/commandHandler");
+
+
+
+const client =
+    new Client({
+
+        intents: [
+            GatewayIntentBits.Guilds
+        ]
+
+    });
+
+
+
+client.commands =
+    new Collection();
+
+
 
 loadCommands(client);
+
 loadEvents(client);
 
-client.login(process.env.TOKEN);
+
+
+// client.once(
+//     "ready",
+//     async () => {
+
+
+//         console.log(
+//             `🤖 ${client.user.tag} siap!`
+//         );
+//     }
+// );
+
+
+
+client.login(
+    process.env.TOKEN
+);

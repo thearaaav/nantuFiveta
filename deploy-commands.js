@@ -1,5 +1,10 @@
 require("dotenv").config();
 
+console.log({
+    CLIENT_ID: process.env.CLIENT_ID,
+    GUILD_ID: process.env.GUILD_ID
+});
+
 const fs = require("fs");
 const path = require("path");
 const { REST, Routes } = require("discord.js");
