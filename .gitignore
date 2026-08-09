@@ -6,3 +6,7 @@ data/*.db
 logs/
 
 *.log
+
+src/data/tasks.json
+
+src/data/pendingTasks.json
