@@ -1,15 +1,4 @@
-const fs = require("fs");
-const path = require("path");
-
-
-// ========================================
-// PENGATURAN
-// ========================================
-
 const CHANNEL_ID = "1451483205176786996";
-
-const MESSAGE_FILE =
-    path.join(__dirname, "../data/scheduleMessage.json");
 
 
 // ========================================
@@ -35,35 +24,14 @@ const SCHEDULE_TEXT =
 "**Catatan**: kurangilah bermain gem onlien\n" +
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
 
-// ========================================
-// CEK / BUAT FOLDER DATA
-// ========================================
-
-function ensureDataFolder(){
-
-    const folder =
-        path.dirname(MESSAGE_FILE);
-
-    if(!fs.existsSync(folder)){
-        fs.mkdirSync(
-            folder,
-            { recursive: true }
-        );
-    }
-
-}
-
 
 // ========================================
-// CEK PESAN JADWAL
+// KIRIM / UPDATE JADWAL
 // ========================================
 
 async function sendSchedule(client){
 
     try{
-
-        ensureDataFolder();
-
 
         const channel =
             await client.channels.fetch(
@@ -82,85 +50,52 @@ async function sendSchedule(client){
         }
 
 
-        let messageId = null;
+        // ========================================
+        // CARI PESAN JADWAL BOT
+        // ========================================
+
+        const messages =
+            await channel.messages.fetch({
+                limit: 50
+            });
 
 
-        // =========================
-        // BACA ID PESAN LAMA
-        // =========================
-
-        if(fs.existsSync(MESSAGE_FILE)){
-
-            const data =
-                JSON.parse(
-                    fs.readFileSync(
-                        MESSAGE_FILE,
-                        "utf8"
+        const existingSchedule =
+            messages.find(
+                message =>
+                    message.author.id === client.user.id &&
+                    message.content.includes(
+                        "Jadwal Kuliah"
                     )
-                );
-
-            messageId =
-                data.messageId || null;
-
-        }
+            );
 
 
-        // =========================
-        // CEK PESAN MASIH ADA
-        // =========================
+        // ========================================
+        // JIKA SUDAH ADA → UPDATE
+        // ========================================
 
-        if(messageId){
+        if(existingSchedule){
 
-            try{
-
-                await channel.messages.fetch(
-                    messageId
-                );
-
-
-                console.log(
-                    "📚 Jadwal masih ada. Tidak mengirim ulang."
-                );
-
-                return;
-
-            } catch(err){
-
-                console.log(
-                    "⚠️ Pesan jadwal tidak ditemukan. Mengirim ulang..."
-                );
-
-            }
-
-        }
-
-
-        // =========================
-        // KIRIM PESAN BARU
-        // =========================
-
-        const message =
-            await channel.send(
+            await existingSchedule.edit(
                 SCHEDULE_TEXT
             );
 
 
-        // =========================
-        // SIMPAN ID PESAN
-        // =========================
+            console.log(
+                "✏️ Jadwal kuliah berhasil diperbarui."
+            );
 
-        fs.writeFileSync(
+            return;
 
-            MESSAGE_FILE,
+        }
 
-            JSON.stringify(
-                {
-                    messageId: message.id
-                },
-                null,
-                4
-            )
 
+        // ========================================
+        // JIKA BELUM ADA → KIRIM BARU
+        // ========================================
+
+        await channel.send(
+            SCHEDULE_TEXT
         );
 
 
@@ -172,7 +107,7 @@ async function sendSchedule(client){
     } catch(err){
 
         console.error(
-            "❌ Gagal mengirim jadwal:",
+            "❌ Gagal mengirim/memperbarui jadwal:",
             err
         );
 
