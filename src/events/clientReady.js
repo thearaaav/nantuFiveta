@@ -4,6 +4,9 @@ const taskBoardService =
 const reminderService =
     require("../services/reminderService");
 
+const scheduleService =
+    require("../services/scheduleService");
+
 function startReminderScheduler(client){
 
 
@@ -99,6 +102,8 @@ module.exports = {
         "online"
 
 });
+
+await scheduleService.sendSchedule(client);
 
         startReminderScheduler(
             client
