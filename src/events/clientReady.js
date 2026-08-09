@@ -93,7 +93,7 @@ module.exports = {
     activities: [
         {
             name:
-                "Kalo torang dulu dek.",
+                "TI A 2025",
             type: 2
         }
     ],

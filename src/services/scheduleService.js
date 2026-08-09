@@ -17,23 +17,23 @@ const MESSAGE_FILE =
 // ========================================
 
 const SCHEDULE_TEXT =
-"Jadwal Kuliah\n" +
-"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+"**Jadwal Kuliah**\n" +
+"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
 "**Senin**:\n" +
-"07:30 - 10:00 |  Sistem Informasi Geografi   | SG 5\n" +
-"15:30 - 17:30 |  Arsitektur Sistem Komputer  | JTI 2\n" +
-"────────────────────────────────────────────────────────────\n" +
+"07:30 - 10:00 | SG 5  | Sistem Informasi Geografi\n" +
+"15:30 - 17:30 | JTI 2 | Arsitektur Sistem Komputer\n" +
+"────────────────────────────────────────\n" +
 "**Selasa**:\n" +
-"07:30 - 10:00 |  Rekayasa API                | SG 4\n" +
-"10:00 - 12:00 |  Interaksi Manusia Komputer  | JTI 3\n" +
-"13:00 - 15:30 |  Basis Data                  | SG 5\n" +
-"15:30 - 18:00 |  Rekayasa Perangkat Lunak    | SG 7\n" +
-"────────────────────────────────────────────────────────────\n" +
+"07:30 - 10:00 | SG 4  | Rekayasa API                \n" +
+"10:00 - 12:00 | JTI 3 | Interaksi Manusia Komputer  \n" +
+"13:00 - 15:30 | SG 5  | Basis Data                  \n" +
+"15:30 - 18:00 | SG 7  | Rekayasa Perangkat Lunak    \n" +
+"────────────────────────────────────────\n" +
 "**Kamis**:\n" +
-"10:10 - 11:30 |  Kajian Lingkungan Hidup     | JTI 2\n" +
-"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-"**Jadwal Praktikum**:\n-\n" +
-"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+"10:10 - 11:30 | JTI 2 | Kajian Lingkungan Hidup\n" +
+"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+"**Catatan**: kurangilah bermain gem onlien\n" +
+"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
 
 // ========================================
 // CEK / BUAT FOLDER DATA
