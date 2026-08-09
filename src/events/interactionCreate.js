@@ -87,7 +87,137 @@ module.exports = {
         // Handler Modal Submit
         // =========================
 
-        if (interaction.isModalSubmit()) {
+if (interaction.isModalSubmit()) {
+
+    // =========================
+    // TALK MODAL
+    // =========================
+
+    if (interaction.customId === "talk-modal") {
+
+        await interaction.deferReply({
+            ephemeral: true
+        });
+
+        try {
+
+            const message =
+                interaction.fields.getTextInputValue(
+                    "talk-message"
+                );
+
+            if (!message.trim()) {
+
+                return interaction.editReply({
+                    content:
+                        "❌ Pesan tidak boleh kosong."
+                });
+
+            }
+
+            await interaction.channel.send({
+                content: message
+            });
+
+            await interaction.editReply({
+                content:
+                    "✅ Pesan berhasil dikirim."
+            });
+
+        } catch (err) {
+
+            console.error(
+                "ERROR TALK MODAL:",
+                err
+            );
+
+            await interaction.editReply({
+                content:
+                    "❌ Gagal mengirim pesan."
+            });
+
+        }
+
+        return;
+    }
+
+
+    // =========================
+    // BROADCAST MODAL
+    // =========================
+
+    if (interaction.customId === "broadcast-modal") {
+
+        await interaction.deferReply({
+            ephemeral: true
+        });
+
+        try {
+
+            const message =
+                interaction.fields.getTextInputValue(
+                    "broadcast-message"
+                );
+
+            if (!message.trim()) {
+
+                return interaction.editReply({
+                    content:
+                        "❌ Pesan tidak boleh kosong."
+                });
+
+            }
+
+            const {
+                broadcastChannel
+            } = require("../config/channels");
+
+            const channel =
+                await client.channels.fetch(
+                    broadcastChannel
+                );
+
+            if (!channel) {
+
+                return interaction.editReply({
+                    content:
+                        "❌ Channel broadcast tidak ditemukan."
+                });
+
+            }
+
+            await channel.send({
+
+                content:
+                    `@everyone ${message}`,
+
+                allowedMentions: {
+                    parse: ["everyone"]
+                }
+
+            });
+
+            await interaction.editReply({
+                content:
+                    "✅ Broadcast berhasil dikirim."
+            });
+
+        } catch (err) {
+
+            console.error(
+                "ERROR BROADCAST MODAL:",
+                err
+            );
+
+            await interaction.editReply({
+                content:
+                    "❌ Gagal mengirim broadcast."
+            });
+
+        }
+
+        return;
+    }
 
 
             if (interaction.customId === "task-add-modal") {

@@ -7,6 +7,9 @@ module.exports = {
         "1531007677197717650",
 
     taskCommandChannel:
-        "1530297928286077130" // aslinya gak dipakai
+        "1530297928286077130",
+
+    broadcastChannel:
+        "1531007677197717650"
 
 };
