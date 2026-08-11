@@ -71,11 +71,10 @@ function saveBoardData(data){
 function createTaskEmbed(task){
     return new EmbedBuilder()
         .setTitle(
-            `📝 ${task.title}`
+            `${task.title}`
         )
         .setDescription(
-`Deadline: ${formatDeadline(task.deadline)} | ${task.time}
-━━━━━━━━━━━━━━`
+`**Deadline**: ${formatDeadline(task.deadline)} | ${task.time}`
         )
         .setColor(
             0x3498db

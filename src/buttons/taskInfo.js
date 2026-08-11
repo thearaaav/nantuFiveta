@@ -166,19 +166,19 @@ module.exports = {
             const embed = {
 
     title:
-        `📝 ${task.title}`,
+        `${task.title}`,
 
 
     description:
 `
-━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 **Mata Kuliah**: ${task.subject}
 **Deskripsi**:
 ${task.description || "-"}
 
 **Deadline**: ${formatDeadline(task.deadline)} | ${task.time}
 ${remaining}
-━━━━━━━━━━━━━━`,
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
     footer:{
         text:
             `id: ${task.id}`

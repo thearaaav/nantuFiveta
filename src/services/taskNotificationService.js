@@ -36,20 +36,14 @@ async function sendNewTaskNotification(
         new EmbedBuilder()
 
         .setTitle(
-            `📄 ${task.title}`
+            `${task.title}`
         )
 
         .setDescription(
 
 `
-━━━━━━━━━━━━━━
 **Mata Kuliah**: ${task.subject}
-**Deskripsi**:
-${task.description || "-"}
-
-**Deadline**: ${task.deadline}
-**Waktu**: ${task.time}
-━━━━━━━━━━━━━━
+**Deadline**: ${task.deadline} | ${task.time}
 `
         )
         .setColor(
