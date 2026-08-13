@@ -1,12 +1,46 @@
+# =========================
+# Dependencies
+# =========================
+
 node_modules/
+
+
+# =========================
+# Environment / Secrets
+# =========================
+
 .env
+.env.*
+!.env.example
 
-data/*.db
 
-logs/
-
-*.log
-
-src/data/tasks.json
+# =========================
+# Runtime / Temporary Data
+# =========================
 
 src/data/pendingTasks.json
+src/data/taskBoard.json
+
+
+# =========================
+# Logs
+# =========================
+
+*.log
+logs/
+
+
+# =========================
+# OS / Editor
+# =========================
+
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local database
+data/
+*.db
+*.sqlite
+*.sqlite3
+src/data/tasks.json
