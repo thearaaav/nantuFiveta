@@ -6,13 +6,14 @@ const {
     Collection
 } = require("discord.js");
 
-
 const loadEvents =
     require("./handlers/eventHandler");
 
 const loadCommands =
     require("./handlers/commandHandler");
 
+const initDatabase =
+    require("./database/init");
 
 
 const client =
@@ -25,10 +26,8 @@ const client =
     });
 
 
-
 client.commands =
     new Collection();
-
 
 
 loadCommands(client);
@@ -36,20 +35,38 @@ loadCommands(client);
 loadEvents(client);
 
 
+// =========================
+// DATABASE + BOT
+// =========================
 
-// client.once(
-//     "ready",
-//     async () => {
+async function startBot() {
+
+    try {
+
+        await initDatabase();
+
+        console.log(
+            "✅ Database berhasil terhubung."
+        );
 
 
-//         console.log(
-//             `🤖 ${client.user.tag} siap!`
-//         );
-//     }
-// );
+        await client.login(
+            process.env.TOKEN
+        );
 
 
+    } catch (error) {
 
-client.login(
-    process.env.TOKEN
-);
+        console.error(
+            "❌ Gagal startup:",
+            error
+        );
+
+        process.exit(1);
+
+    }
+
+}
+
+
+startBot();

@@ -1,15 +1,7 @@
+const pool = require("../database/db");
+
 const fs = require("fs");
 const path = require("path");
-
-
-const tasksPath =
-    path.join(
-        __dirname,
-        "..",
-        "data",
-        "tasks.json"
-    );
-
 
 const pendingPath =
     path.join(
@@ -20,9 +12,13 @@ const pendingPath =
     );
 
 
-function readJSON(file){
+// =========================
+// JSON HELPER
+// =========================
 
-    try{
+function readJSON(file) {
+
+    try {
 
         return JSON.parse(
             fs.readFileSync(
@@ -31,7 +27,7 @@ function readJSON(file){
             )
         );
 
-    }catch{
+    } catch {
 
         return [];
 
@@ -40,8 +36,7 @@ function readJSON(file){
 }
 
 
-
-function saveJSON(file,data){
+function saveJSON(file, data) {
 
     fs.writeFileSync(
         file,
@@ -55,61 +50,125 @@ function saveJSON(file,data){
 }
 
 
+// =========================
+// TASKS - POSTGRESQL
+// =========================
 
-// =================
-// TASKS
-// =================
+async function getTasks() {
 
-function getTasks(){
+    const result =
+        await pool.query(`
+            SELECT
+                id,
+                user_id AS "userId",
+                title,
+                subject,
+                deadline,
+                time,
+                description,
+                created_at AS "createdAt",
+                reminder_sent AS "reminderSent"
+            FROM tasks
+            ORDER BY CAST(id AS INTEGER)
+        `);
 
-    return readJSON(tasksPath);
+    return result.rows;
 
 }
 
-function saveTasks(tasks){
 
-    saveJSON(
-        tasksPath,
-        tasks
-    );
+async function saveTasks(tasks) {
+
+    for (const task of tasks) {
+
+        await pool.query(
+            `
+            UPDATE tasks
+            SET reminder_sent = $1
+            WHERE id = $2
+            `,
+            [
+                JSON.stringify(
+                    task.reminderSent || []
+                ),
+                task.id
+            ]
+        );
+
+    }
 
 }
 
-function addTask(task){
 
-    const tasks =
-        getTasks();
+async function addTask(task) {
 
-    tasks.push(task);
-
-    saveJSON(
-        tasksPath,
-        tasks
+    await pool.query(
+        `
+        INSERT INTO tasks (
+            id,
+            user_id,
+            title,
+            subject,
+            deadline,
+            time,
+            description,
+            created_at,
+            reminder_sent
+        )
+        VALUES (
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
+            $7,
+            $8,
+            $9
+        )
+        `,
+        [
+            task.id,
+            task.userId,
+            task.title,
+            task.subject || null,
+            task.deadline || null,
+            task.time || null,
+            task.description || null,
+            task.createdAt || Date.now(),
+            JSON.stringify(
+                task.reminderSent || []
+            )
+        ]
     );
 
     return task;
 
 }
 
-function generateTaskId(){
 
-    const tasks = getTasks();
+async function generateTaskId() {
 
+    const result =
+        await pool.query(`
+            SELECT id
+            FROM tasks
+            ORDER BY CAST(id AS INTEGER) DESC
+            LIMIT 1
+        `);
 
-    if(tasks.length === 0){
+    if (
+        result.rows.length === 0
+    ) {
 
         return "001";
 
     }
 
-
     const lastId =
-        Math.max(
-            ...tasks.map(
-                task => Number(task.id)
-            )
+        Number(
+            result.rows[0].id
         );
-
 
     return String(
         lastId + 1
@@ -121,64 +180,58 @@ function generateTaskId(){
 }
 
 
+async function getTaskById(id) {
 
-function getTaskById(id){
+    const result =
+        await pool.query(
+            `
+            SELECT
+                id,
+                user_id AS "userId",
+                title,
+                subject,
+                deadline,
+                time,
+                description,
+                created_at AS "createdAt",
+                reminder_sent AS "reminderSent"
+            FROM tasks
+            WHERE id = $1
+            `,
+            [id]
+        );
 
-    const tasks =
-        getTasks();
-
-
-    return tasks.find(
-        task => task.id === id
-    );
+    return result.rows[0] || null;
 
 }
 
 
+async function updateTask(id, data) {
 
-function updateTask(id, data){
+    const oldTask =
+        await getTaskById(id);
 
-    const tasks =
-        getTasks();
-
-
-    const index =
-        tasks.findIndex(
-            task => task.id === id
-        );
-
-
-    if(index === -1){
+    if (!oldTask) {
 
         return null;
 
     }
 
 
-    const oldTask =
-        tasks[index];
-
-
-
-    // =========================
-    // Reset reminder jika deadline berubah
-    // =========================
-
-    if(
+    if (
         data.deadline &&
         (
             data.deadline !== oldTask.deadline ||
             data.time !== oldTask.time
         )
-    ){
+    ) {
 
         data.reminderSent = [];
 
     }
 
 
-
-    tasks[index] = {
+    const updatedTask = {
 
         ...oldTask,
 
@@ -187,50 +240,70 @@ function updateTask(id, data){
     };
 
 
-
-    saveJSON(
-        tasksPath,
-        tasks
+    await pool.query(
+        `
+        UPDATE tasks
+        SET
+            user_id = $1,
+            title = $2,
+            subject = $3,
+            deadline = $4,
+            time = $5,
+            description = $6,
+            created_at = $7,
+            reminder_sent = $8
+        WHERE id = $9
+        `,
+        [
+            updatedTask.userId,
+            updatedTask.title,
+            updatedTask.subject || null,
+            updatedTask.deadline || null,
+            updatedTask.time || null,
+            updatedTask.description || null,
+            updatedTask.createdAt || Date.now(),
+            JSON.stringify(
+                updatedTask.reminderSent || []
+            ),
+            id
+        ]
     );
 
 
-    return tasks[index];
+    return updatedTask;
 
 }
 
 
+async function deleteTask(id) {
 
-function deleteTask(id){
-
-    const tasks =
-        getTasks();
-
-
-    const filtered =
-        tasks.filter(
-            task => task.id !== id
-        );
-
-
-    saveJSON(tasksPath, filtered);
-
+    await pool.query(
+        `
+        DELETE FROM tasks
+        WHERE id = $1
+        `,
+        [id]
+    );
 
     return true;
 
 }
 
-// =================
-// PENDING
-// =================
 
-function getPendingTasks(){
+// =========================
+// PENDING - JSON
+// =========================
 
-    return readJSON(pendingPath);
+function getPendingTasks() {
+
+    return readJSON(
+        pendingPath
+    );
 
 }
 
 
-function addPendingTask(task){
+function addPendingTask(task) {
 
     const pending =
         getPendingTasks();
@@ -245,62 +318,56 @@ function addPendingTask(task){
 }
 
 
-function updatePendingTask(task){
+function updatePendingTask(task) {
 
     const pending =
         getPendingTasks();
 
-
     const index =
         pending.findIndex(
-            t => t.userId === task.userId
+            t =>
+                t.userId ===
+                task.userId
         );
 
-
-    if(index === -1)
+    if (index === -1)
         return null;
 
-
     pending[index] = task;
-
 
     saveJSON(
         pendingPath,
         pending
     );
 
-
     return task;
 
 }
 
 
-
-function getPendingByUser(userId){
+function getPendingByUser(userId) {
 
     const pending =
         getPendingTasks();
 
-
     return pending.find(
-        t => t.userId === userId
+        t =>
+            t.userId === userId
     );
 
 }
 
 
-
-function removePendingTask(id){
+function removePendingTask(id) {
 
     const pending =
         getPendingTasks();
 
-
     const result =
         pending.filter(
-            t => t.id !== id
+            t =>
+                t.id !== id
         );
-
 
     saveJSON(
         pendingPath,
@@ -309,43 +376,17 @@ function removePendingTask(id){
 
 }
 
-// function generateTaskId(){
 
-//     const tasks =
-//         getTasks();
-
-
-//     if(tasks.length === 0){
-
-//         return "001";
-
-//     }
-
-
-//     const lastTask =
-//         tasks[tasks.length - 1];
-
-
-//     const lastId =
-//         Number(lastTask.id);
-
-
-//     return String(lastId + 1)
-//         .padStart(3, "0");
-
-// }
-
-function removePendingByUser(userId){
+function removePendingByUser(userId) {
 
     const pending =
         getPendingTasks();
 
-
     const updated =
         pending.filter(
-            task => task.userId !== userId
+            task =>
+                task.userId !== userId
         );
-
 
     saveJSON(
         pendingPath,
@@ -354,51 +395,44 @@ function removePendingByUser(userId){
 
 }
 
-function hasPendingTask(userId){
+
+function hasPendingTask(userId) {
 
     const pending =
         getPendingTasks();
 
-
     return pending.some(
-        task => task.userId === userId
+        task =>
+            task.userId === userId
     );
 
 }
 
 
+// =========================
+// EXPORT
+// =========================
+
 module.exports = {
 
     saveJSON,
-
     readJSON,
-    
+
     getTasks,
-
     addTask,
-
     saveTasks,
 
     getPendingTasks,
-
     addPendingTask,
-
     updatePendingTask,
-
     getPendingByUser,
-
     removePendingTask,
-
     removePendingByUser,
-
     hasPendingTask,
 
     generateTaskId,
-
     getTaskById,
-
     updateTask,
-
-    deleteTask,
+    deleteTask
 
 };

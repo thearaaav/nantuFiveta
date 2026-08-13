@@ -20,7 +20,7 @@ async execute(interaction){
     // cek apakah tugas masih ada
 
     const task =
-        taskService.getTaskById(id);
+        await taskService.getTaskById(id);
 
 
 
@@ -39,7 +39,7 @@ async execute(interaction){
 
 
 
-    taskService.deleteTask(id);
+    await taskService.deleteTask(id);
 
 
 

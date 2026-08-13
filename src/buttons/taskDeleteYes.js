@@ -19,7 +19,7 @@ module.exports = {
 
 
         const task =
-            taskService.getTaskById(
+            await taskService.getTaskById(
                 taskId
             );
 
@@ -40,9 +40,9 @@ module.exports = {
 
 
 
-        // hapus dari tasks.json
+        // hapus dari postgreSQL
 
-        taskService.deleteTask(
+        await taskService.deleteTask(
             taskId
         );
 

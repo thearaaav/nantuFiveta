@@ -37,7 +37,7 @@ module.exports = {
 
 
         const tasks =
-            taskService.getTasks();
+            await taskService.getTasks();
 
 
 

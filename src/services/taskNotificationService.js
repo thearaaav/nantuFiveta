@@ -56,7 +56,7 @@ async function sendNewTaskNotification(
     await channel.send({
 
         content:
-            `🔔 <@&${memberClassRole}>! Ada tugas baru.`,
+            `🔔 <@&${memberClassRole}>! New Tugas Baru.`,
 
         embeds:[
             embed

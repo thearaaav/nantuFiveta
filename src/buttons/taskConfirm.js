@@ -169,7 +169,7 @@ if (action === "confirm") {
 };
 
 
-taskService.addTask(
+await taskService.addTask(
     newTask
 );
 
@@ -221,7 +221,7 @@ try {
 
     await taskBoardService.addTaskBoard(
         interaction.client,
-        draft
+    newTask
     );
 
 

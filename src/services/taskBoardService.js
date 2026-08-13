@@ -353,7 +353,7 @@ async function syncTaskBoard(client){
 
 
     const tasks =
-        taskService.getTasks();
+        await taskService.getTasks();
 
 
     const board =

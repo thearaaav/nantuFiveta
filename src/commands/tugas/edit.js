@@ -20,7 +20,7 @@ async execute(interaction){
 
 
     const task =
-        taskService.getTaskById(id);
+        await taskService.getTaskById(id);
 
 
     // Periksa apakah pengguna memiliki peran yang diperlukan

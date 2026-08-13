@@ -31,7 +31,7 @@ async function checkReminder(
 
 
     const tasks =
-        taskService.getTasks();
+        await taskService.getTasks();
 
 
 

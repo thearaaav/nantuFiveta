@@ -338,11 +338,14 @@ const oldDraft =
     );
 
 
+const taskId =
+    oldDraft
+        ? oldDraft.id
+        : await taskService.generateTaskId();
+
 const pendingTask = {
 
-    id: oldDraft
-    ? oldDraft.id
-    : taskService.generateTaskId(),
+    id: taskId,
 
     userId:
         interaction.user.id,
@@ -644,7 +647,7 @@ if(!parsedDeadline){
 
 
             const updatedTask =
-                taskService.updateTask(
+                await taskService.updateTask(
 
                     taskId,
 

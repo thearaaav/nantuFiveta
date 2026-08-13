@@ -20,7 +20,7 @@ module.exports = {
 
 
         const task =
-            taskService.getTaskById(
+            await taskService.getTaskById(
                 taskId
             );
 
