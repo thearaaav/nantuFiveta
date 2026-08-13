@@ -311,7 +311,7 @@ if(deadline < now){
 
 
             .setTitle(
-                "🔔 Reminder Tugas !"
+                "🔔 Sekedar Mengingatkan"
             )
 
 
