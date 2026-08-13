@@ -166,13 +166,12 @@ module.exports = {
             const embed = {
 
     title:
-        `🔔 Sekedar Mengingatkan`,
+        `${task.title}`,
 
 
     description:
 `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-**Judul**: ${task.title}
 **Mata Kuliah**: ${task.subject}
 **Deskripsi**:
 ${task.description || "-"}

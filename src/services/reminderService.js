@@ -320,7 +320,6 @@ if(deadline < now){
 `${type}
 
 ━━━━━━━━━━━━━━
-
 ${
 reminderTasks.map(task =>
 
@@ -336,7 +335,6 @@ ${task.id}
 
 ).join("\n")
 }
-
 ━━━━━━━━━━━━━━`
 
             )
