@@ -1,3 +1,6 @@
+const pool =
+    require("../database/db");
+
 const {
     EmbedBuilder,
     ActionRowBuilder,
@@ -5,93 +8,108 @@ const {
     ButtonStyle
 } = require("discord.js");
 
-const fs = require("fs");
-const path = require("path");
-
 const {
     formatDeadline
 } = require("../utils/dateUtils");
 
-const boardPath =
-    path.join(
-        __dirname,
-        "..",
-        "data",
-        "taskBoard.json"
-    );
-
 
 // =========================
-// BOARD DATA
+// DATABASE TASK BOARD
 // =========================
 
-function getBoardData(){
+async function getBoardTask(taskId) {
 
-    try {
-
-        return JSON.parse(
-            fs.readFileSync(
-                boardPath,
-                "utf8"
-            )
+    const result =
+        await pool.query(
+            `
+            SELECT
+                task_id AS "taskId",
+                message_id AS "messageId"
+            FROM task_board
+            WHERE task_id = $1
+            `,
+            [taskId]
         );
 
-
-    } catch {
-
-        return {
-            tasks:{}
-        };
-
-    }
+    return result.rows[0] || null;
 
 }
 
 
+async function saveBoardTask(
+    taskId,
+    messageId
+) {
 
-function saveBoardData(data){
-
-    fs.writeFileSync(
-        boardPath,
-        JSON.stringify(
-            data,
-            null,
-            4
+    await pool.query(
+        `
+        INSERT INTO task_board (
+            task_id,
+            message_id
         )
+        VALUES ($1, $2)
+
+        ON CONFLICT (task_id)
+        DO UPDATE SET
+            message_id = EXCLUDED.message_id
+        `,
+        [
+            taskId,
+            messageId
+        ]
     );
 
 }
 
+
+async function deleteBoardTask(
+    taskId
+) {
+
+    await pool.query(
+        `
+        DELETE FROM task_board
+        WHERE task_id = $1
+        `,
+        [taskId]
+    );
+
+}
 
 
 // =========================
 // EMBED TUGAS
 // =========================
 
-function createTaskEmbed(task){
+function createTaskEmbed(task) {
+
     return new EmbedBuilder()
+
         .setTitle(
             `${task.title}`
         )
+
         .setDescription(
-`**Deadline**: ${formatDeadline(task.deadline)} | ${task.time}`
+            `**Deadline**: ${formatDeadline(task.deadline)} | ${task.time}`
         )
+
         .setColor(
             0x3498db
         )
+
         .setFooter({
             text:
                 `id: ${task.id}`
         });
-}
 
+}
 
 
 // =========================
 // BUTTON DETAIL
 // =========================
 
-function createDetailButton(task){
+function createDetailButton(task) {
 
     return new ActionRowBuilder()
 
@@ -116,7 +134,6 @@ function createDetailButton(task){
 }
 
 
-
 // =========================
 // TAMBAH TASK KE BOARD
 // =========================
@@ -124,7 +141,7 @@ function createDetailButton(task){
 async function addTaskBoard(
     client,
     task
-){
+) {
 
     const {
         taskListChannel
@@ -140,40 +157,23 @@ async function addTaskBoard(
     const message =
         await channel.send({
 
-            embeds:[
+            embeds: [
                 createTaskEmbed(task)
             ],
 
-            components:[
+            components: [
                 createDetailButton(task)
             ]
 
         });
 
 
+    // Simpan mapping ke Neon
 
-    const board =
-        getBoardData();
-
-
-
-    if(!board.tasks){
-
-        board.tasks = {};
-
-    }
-
-
-
-    board.tasks[task.id] = {
-
-        messageId: message.id
-
-    };
-
-
-
-    saveBoardData(board);
+    await saveBoardTask(
+        task.id,
+        message.id
+    );
 
 
     console.log(
@@ -185,6 +185,7 @@ async function addTaskBoard(
 
 }
 
+
 // =========================
 // HAPUS TASK DARI BOARD
 // =========================
@@ -192,7 +193,7 @@ async function addTaskBoard(
 async function removeTaskBoard(
     client,
     taskId
-){
+) {
 
     const {
         taskListChannel
@@ -205,17 +206,13 @@ async function removeTaskBoard(
         );
 
 
-    const board =
-        getBoardData();
-
-
-
     const task =
-        board.tasks?.[taskId];
+        await getBoardTask(
+            taskId
+        );
 
 
-
-    if(!task){
+    if (!task) {
 
         console.log(
             "Data task board tidak ditemukan:",
@@ -227,9 +224,7 @@ async function removeTaskBoard(
     }
 
 
-
     try {
-
 
         const message =
             await channel.messages.fetch(
@@ -246,7 +241,7 @@ async function removeTaskBoard(
         );
 
 
-    } catch(err){
+    } catch (err) {
 
         console.log(
             "Pesan Discord tidak ditemukan:",
@@ -256,18 +251,23 @@ async function removeTaskBoard(
     }
 
 
+    // Hapus mapping dari Neon
 
-    delete board.tasks[taskId];
-
-
-    saveBoardData(board);
+    await deleteBoardTask(
+        taskId
+    );
 
 }
+
+
+// =========================
+// UPDATE TASK BOARD
+// =========================
 
 async function updateTaskBoard(
     client,
     task
-){
+) {
 
     const {
         taskListChannel
@@ -280,18 +280,17 @@ async function updateTaskBoard(
         );
 
 
-    const board =
-        getBoardData();
-
-
     const data =
-        board.tasks[task.id];
+        await getBoardTask(
+            task.id
+        );
 
 
-    if(!data){
+    if (!data) {
 
         console.log(
-            "Pesan task tidak ditemukan untuk update"
+            "Pesan task tidak ditemukan untuk update:",
+            task.id
         );
 
         return;
@@ -299,9 +298,7 @@ async function updateTaskBoard(
     }
 
 
-
-    try{
-
+    try {
 
         const message =
             await channel.messages.fetch(
@@ -311,13 +308,13 @@ async function updateTaskBoard(
 
         await message.edit({
 
-            embeds:[
+            embeds: [
 
                 createTaskEmbed(task)
 
             ],
 
-            components:[
+            components: [
 
                 createDetailButton(task)
 
@@ -326,27 +323,31 @@ async function updateTaskBoard(
         });
 
 
-
         console.log(
             "Task board diupdate:",
             task.id
         );
 
 
-    }catch(err){
-
+    } catch (err) {
 
         console.error(
             "Gagal update task board:",
             err
         );
 
-
     }
 
 }
 
-async function syncTaskBoard(client){
+
+// =========================
+// SYNC TASK BOARD
+// =========================
+
+async function syncTaskBoard(
+    client
+) {
 
     const taskService =
         require("./taskService");
@@ -354,10 +355,6 @@ async function syncTaskBoard(client){
 
     const tasks =
         await taskService.getTasks();
-
-
-    const board =
-        getBoardData();
 
 
     const {
@@ -371,23 +368,21 @@ async function syncTaskBoard(client){
         );
 
 
+    for (const task of tasks) {
 
-    for(const task of tasks){
-
-    const saved =
-        board.tasks?.[task.id];
-
+        const saved =
+            await getBoardTask(
+                task.id
+            );
 
 
         // =====================
         // Sudah punya pesan
         // =====================
 
-        if(saved){
-
+        if (saved) {
 
             try {
-
 
                 const message =
                     await channel.messages.fetch(
@@ -397,12 +392,16 @@ async function syncTaskBoard(client){
 
                 await message.edit({
 
-                    embeds:[
+                    embeds: [
+
                         createTaskEmbed(task)
+
                     ],
 
-                    components:[
+                    components: [
+
                         createDetailButton(task)
+
                     ]
 
                 });
@@ -416,17 +415,23 @@ async function syncTaskBoard(client){
                 continue;
 
 
-            } catch(err){
+            } catch (err) {
 
                 console.log(
                     `Pesan ${task.id} hilang, buat baru`
                 );
 
+
+                // Pesan Discord sudah hilang.
+                // Hapus mapping lama dari Neon.
+
+                await deleteBoardTask(
+                    task.id
+                );
+
             }
 
-
         }
-
 
 
         // =====================
@@ -438,10 +443,14 @@ async function syncTaskBoard(client){
             task
         );
 
-
     }
 
 }
+
+
+// =========================
+// EXPORT
+// =========================
 
 module.exports = {
 
