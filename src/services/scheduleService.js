@@ -16,10 +16,10 @@ const SCHEDULE_TEXT =
 "07:30 - 10:00 | SG 4  | Rekayasa API                \n" +
 "10:00 - 12:00 | JTI 3 | Interaksi Manusia Komputer  \n" +
 "13:00 - 15:30 | SG 5  | Basis Data                  \n" +
-"15:30 - 18:00 | SG 7  | Rekayasa Perangkat Lunak    \n" +
 "────────────────────────────────────────\n" +
 "**Kamis**:\n" +
 "10:10 - 11:30 | JTI 2 | Kajian Lingkungan Hidup\n" +
+"15:30 - 18:00 | SG -  | Rekayasa Perangkat Lunak\n" +
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
 "**Catatan**: kurangilah bermain gem onlien\n" +
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
