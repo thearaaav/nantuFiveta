@@ -115,15 +115,15 @@ async function runLmsCheck(client) {
 
         for (const item of modules) {
             // Cek apakah modul sudah pernah disimpan/dinotifikasi sebelumnya
-            if (!lmsDb.isModuleNotified(item.moduleId)) {
+            if (!(await lmsDb.isModuleNotified(item.moduleId))) {
                 // Jika tugas dan sudah lewat deadline, tandai di DB agar tidak di-spam, tapi jangan kirim ke Discord
                 if (item.type === "TUGAS" && item.isExpired) {
-                    lmsDb.saveNotifiedModule(item);
+                    await lmsDb.saveNotifiedModule(item);
                     continue;
                 }
 
                 // Simpan ke DB dan kirim notifikasi
-                lmsDb.saveNotifiedModule(item);
+                await lmsDb.saveNotifiedModule(item);
                 await sendDiscordNotification(channel, item);
                 newCount++;
 

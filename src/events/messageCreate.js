@@ -188,7 +188,7 @@ module.exports = {
 
             // 1. Leaderboard: n!cemi leaderboard / n!cemi lb
             if (sub === "leaderboard" || sub === "lb") {
-                const topDuos = chemistryService.db.getTopDuosLeaderboard(10);
+                const topDuos = await chemistryService.db.getTopDuosLeaderboard(10);
 
                 if (!topDuos || topDuos.length === 0) {
                     return message.reply("🏆 Belum ada data leaderboard chemistry di server ini.");
@@ -228,9 +228,9 @@ module.exports = {
                     return message.reply("❌ Kamu tidak bisa mengecek chemistry dengan dirimu sendiri!");
                 }
 
-                const points = chemistryService.db.getDuoPoints(userId, targetMention.id);
+                const points = await chemistryService.db.getDuoPoints(userId, targetMention.id);
                 const info = chemistryService.getDuoLevelInfo(points);
-                const rank = chemistryService.db.getDuoRank(userId, targetMention.id);
+                const rank = await chemistryService.db.getDuoRank(userId, targetMention.id);
 
                 const embed = new EmbedBuilder()
                     .setColor(0xe91e63)
@@ -248,7 +248,7 @@ module.exports = {
             }
 
             // 3. Profil Chemistry Pengguna: n!cemi [halaman] (Paginasi per 10 tanpa progress bar)
-            const allDuos = chemistryService.db.getAllUserDuos(userId);
+            const allDuos = await chemistryService.db.getAllUserDuos(userId);
             const ITEMS_PER_PAGE = 10;
             const totalPages = Math.max(1, Math.ceil(allDuos.length / ITEMS_PER_PAGE));
 

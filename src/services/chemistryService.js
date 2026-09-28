@@ -76,7 +76,7 @@ function startVoiceTracker(client) {
 
     console.log("🎙️ Chemistry Voice Tracker diaktifkan (interval: 1 menit).");
 
-    trackerInterval = setInterval(() => {
+    trackerInterval = setInterval(async () => {
         try {
             for (const guild of client.guilds.cache.values()) {
                 // Ambil semua channel yang bertipe voice
@@ -100,7 +100,7 @@ function startVoiceTracker(client) {
                     }
 
                     if (duoPairs.length > 0) {
-                        chemistryDb.addDuoPointsTransaction(duoPairs);
+                        await chemistryDb.addDuoPointsTransaction(duoPairs);
                     }
                 }
             }

@@ -1,97 +1,230 @@
-require('dotenv').config();
-const sqlite3 = require('sqlite3').verbose();
-const { Client } = require('pg');
+require("dotenv").config();
 
-// Path presisi ke SQLite kamu
-const dbPath = 'D:/nantuFive/data/database.db';
+const path = require("path");
+const sqlite3 = require("sqlite3").verbose();
+const { Client } = require("pg");
+
+const dbPath = process.env.SQLITE_DB_PATH
+    ? path.resolve(process.env.SQLITE_DB_PATH)
+    : path.join(__dirname, "data", "database.db");
+
+if (!process.env.DATABASE_URL) {
+    console.error("❌ DATABASE_URL belum diatur.");
+    process.exit(1);
+}
+
 const dbSqlite = new sqlite3.Database(dbPath);
-
-// Connection String Public Railway
 const pgClient = new Client({
-    connectionString: 'postgresql://postgres:TzQJTbQnipUdXzeHGRkspUBOGUTfdpoC@switchyard.proxy.rlwy.net:39948/railway',
-    ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL.includes("railway.internal")
+        ? false
+        : { rejectUnauthorized: false }
 });
 
-// Fungsi pembantu konversi tipe data SQLite -> PostgreSQL
-function mapSqliteTypeToPg(type) {
-    if (!type) return 'TEXT';
-    const t = type.toUpperCase();
-    if (t.includes('INT')) return 'BIGINT';
-    if (t.includes('CHAR') || t.includes('CLOB') || t.includes('TEXT')) return 'TEXT';
-    if (t.includes('BLOB')) return 'BYTEA';
-    if (t.includes('REAL') || t.includes('FLOA') || t.includes('DOUB')) return 'DOUBLE PRECISION';
-    return 'TEXT';
+function sqliteAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        dbSqlite.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows);
+        });
+    });
+}
+
+async function migrateTable(tableName, columns, rows, conflict = "DO NOTHING") {
+    if (!rows.length) {
+        console.log(`  └─ ℹ️ ${tableName}: 0 data, dilewati.`);
+        return;
+    }
+
+    const quotedColumns = columns.map((column) => `"${column}"`).join(", ");
+    let inserted = 0;
+
+    for (const row of rows) {
+        const values = columns.map((column) => row[column]);
+        const placeholders = values.map((_, index) => `$${index + 1}`).join(", ");
+
+        await pgClient.query(
+            `INSERT INTO "${tableName}" (${quotedColumns}) VALUES (${placeholders}) ON CONFLICT ${conflict}`,
+            values
+        );
+        inserted++;
+    }
+
+    console.log(`  └─ ✅ ${tableName}: ${inserted} baris diproses.`);
+}
+
+async function resetSequence(tableName, column = "id") {
+    const sequenceResult = await pgClient.query(`
+        SELECT pg_get_serial_sequence($1, $2) AS sequence
+    `, [tableName, column]);
+
+    const sequence = sequenceResult.rows[0]?.sequence;
+    if (!sequence) return;
+
+    await pgClient.query(`
+        SELECT setval($1::regclass, COALESCE((SELECT MAX("${column}") FROM "${tableName}"), 1), true)
+    `, [sequence]);
+}
+
+
+async function ensurePostgresSchema() {
+    await pgClient.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY,
+            nus_balance INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS chemistry_duo (
+            id BIGSERIAL PRIMARY KEY,
+            user1_id TEXT NOT NULL,
+            user2_id TEXT NOT NULL,
+            points INTEGER DEFAULT 0,
+            UNIQUE(user1_id, user2_id)
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_chemistry_duo_pair ON chemistry_duo(user1_id, user2_id);
+
+        CREATE TABLE IF NOT EXISTS chemistry_group (
+            id BIGSERIAL PRIMARY KEY,
+            group_id TEXT UNIQUE NOT NULL,
+            member_ids TEXT NOT NULL,
+            total_minutes INTEGER DEFAULT 0,
+            custom_name TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS students (
+            id BIGSERIAL PRIMARY KEY,
+            nim VARCHAR UNIQUE,
+            nama VARCHAR NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_students_nim ON students(nim);
+
+        CREATE TABLE IF NOT EXISTS lms_notified_modules (
+            module_id TEXT PRIMARY KEY,
+            course_name TEXT,
+            title TEXT,
+            type TEXT,
+            link TEXT,
+            created_at BIGINT
+        );
+
+        CREATE TABLE IF NOT EXISTS private_streaks (
+            id BIGSERIAL PRIMARY KEY,
+            channel_id TEXT NOT NULL,
+            member_ids TEXT NOT NULL,
+            streak_count INTEGER DEFAULT 1,
+            last_active_date TEXT
+        );
+    `);
 }
 
 async function migrateAllTables() {
     try {
+        console.log(`📦 SQLite source: ${dbPath}`);
         await pgClient.connect();
-        console.log('⚡ Terhubung ke PostgreSQL Railway...');
+        console.log("⚡ Terhubung ke PostgreSQL Railway.");
+        await ensurePostgresSchema();
+        console.log("🧱 Schema PostgreSQL siap.");
 
-        // 1. Ambil semua nama tabel dari SQLite (kecuali sistem internal sqlite)
-        dbSqlite.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';", [], async (err, tables) => {
-            if (err) {
-                console.error('❌ Gagal membaca daftar tabel SQLite:', err.message);
-                return;
+        const tables = await sqliteAll(`
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name NOT LIKE 'sqlite_%'
+            ORDER BY name
+        `);
+
+        const available = new Set(tables.map((table) => table.name));
+        const expectedTables = [
+            "users",
+            "chemistry_duo",
+            "chemistry_group",
+            "students",
+            "lms_notified_modules",
+            "private_streaks"
+        ];
+
+        for (const table of expectedTables) {
+            if (!available.has(table)) {
+                console.log(`ℹ️ ${table}: tidak ada di SQLite, dilewati.`);
             }
+        }
 
-            console.log(`📋 Ditemukan ${tables.length} tabel untuk dipindahkan.`);
+        await pgClient.query("BEGIN");
 
-            for (const tableObj of tables) {
-                const tableName = tableObj.name;
-                console.log(`\n⏳ Memproses tabel: [${tableName}]...`);
+        if (available.has("users")) {
+            console.log("\n⏳ Memigrasikan users...");
+            await migrateTable(
+                "users",
+                ["user_id", "nus_balance"],
+                await sqliteAll("SELECT user_id, nus_balance FROM users")
+            );
+        }
 
-                // A. Ambil struktur kolom tabel SQLite
-                const columns = await new Promise((resolve, reject) => {
-                    dbSqlite.all(`PRAGMA table_info("${tableName}")`, [], (e, res) => e ? reject(e) : resolve(res));
-                });
+        if (available.has("chemistry_duo")) {
+            console.log("\n⏳ Memigrasikan chemistry_duo...");
+            await migrateTable(
+                "chemistry_duo",
+                ["id", "user1_id", "user2_id", "points"],
+                await sqliteAll("SELECT id, user1_id, user2_id, points FROM chemistry_duo")
+            );
+            await resetSequence("chemistry_duo");
+        }
 
-                // B. Buat DDL Query untuk CREATE TABLE di PostgreSQL
-                const colDefinitions = columns.map(col => {
-                    let colDef = `"${col.name}" ${mapSqliteTypeToPg(col.type)}`;
-                    if (col.pk === 1) colDef += ' PRIMARY KEY';
-                    return colDef;
-                }).join(', ');
+        if (available.has("chemistry_group")) {
+            console.log("\n⏳ Memigrasikan chemistry_group...");
+            await migrateTable(
+                "chemistry_group",
+                ["id", "group_id", "member_ids", "total_minutes", "custom_name"],
+                await sqliteAll("SELECT id, group_id, member_ids, total_minutes, custom_name FROM chemistry_group")
+            );
+            await resetSequence("chemistry_group");
+        }
 
-                const createTableQuery = `CREATE TABLE IF NOT EXISTS "${tableName}" (${colDefinitions});`;
-                await pgClient.query(createTableQuery);
-                console.log(`  └─ ✅ Tabel "${tableName}" siap di PostgreSQL.`);
+        if (available.has("students")) {
+            console.log("\n⏳ Memigrasikan students...");
+            await migrateTable(
+                "students",
+                ["id", "nim", "nama"],
+                await sqliteAll("SELECT id, nim, nama FROM students")
+            );
+            await resetSequence("students");
+        }
 
-                // C. Ambil semua baris data dari SQLite
-                const rows = await new Promise((resolve, reject) => {
-                    dbSqlite.all(`SELECT * FROM "${tableName}"`, [], (e, res) => e ? reject(e) : resolve(res));
-                });
+        if (available.has("lms_notified_modules")) {
+            console.log("\n⏳ Memigrasikan lms_notified_modules...");
+            await migrateTable(
+                "lms_notified_modules",
+                ["module_id", "course_name", "title", "type", "link", "created_at"],
+                await sqliteAll("SELECT module_id, course_name, title, type, link, created_at FROM lms_notified_modules")
+            );
+        }
 
-                if (rows.length === 0) {
-                    console.log(`  └─ ℹ️ Tabel "${tableName}" kosong (0 data). Skipping insert.`);
-                    continue;
-                }
+        if (available.has("private_streaks")) {
+            console.log("\n⏳ Memigrasikan private_streaks...");
+            await migrateTable(
+                "private_streaks",
+                ["id", "channel_id", "member_ids", "streak_count", "last_active_date"],
+                await sqliteAll("SELECT id, channel_id, member_ids, streak_count, last_active_date FROM private_streaks")
+            );
+            await resetSequence("private_streaks");
+        }
 
-                // D. Insert data ke PostgreSQL
-                let insertedCount = 0;
-                for (const row of rows) {
-                    const keys = Object.keys(row);
-                    const colsEscaped = keys.map(k => `"${k}"`).join(', ');
-                    const paramPlaceholders = keys.map((_, idx) => `$${idx + 1}`).join(', ');
-                    const values = keys.map(k => row[k]);
+        await pgClient.query("COMMIT");
 
-                    const insertQuery = `INSERT INTO "${tableName}" (${colsEscaped}) VALUES (${paramPlaceholders}) ON CONFLICT DO NOTHING;`;
-                    await pgClient.query(insertQuery, values);
-                    insertedCount++;
-                }
-
-                console.log(`  └─ 🎉 Berhasil memindahkan ${insertedCount} data ke "${tableName}".`);
-            }
-
-            console.log('\n==================================================');
-            console.log('✅ MIGRASI TOTAL SELESAI! Semua tabel & data berhasil dipindah ke Railway.');
-            console.log('==================================================');
-
-            await pgClient.end();
-            dbSqlite.close();
-        });
+        console.log("\n==================================================");
+        console.log("✅ MIGRASI SQLITE → POSTGRESQL SELESAI");
+        console.log("   Data lama dipertahankan; baris yang sudah ada dilewati.");
+        console.log("==================================================");
     } catch (error) {
-        console.error('❌ Error Migrasi:', error);
+        try {
+            await pgClient.query("ROLLBACK");
+        } catch (_) {}
+
+        console.error("❌ Migrasi gagal:", error);
+        process.exitCode = 1;
+    } finally {
+        await pgClient.end().catch(() => {});
+        dbSqlite.close();
     }
 }
 

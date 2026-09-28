@@ -1,26 +1,4 @@
-const path = require("path");
-const fs = require("fs");
-const Database = require("better-sqlite3");
-
-const dataDir = path.join(__dirname, "..", "..", "data");
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-}
-
-const dbPath = path.join(dataDir, "database.db");
-const db = new Database(dbPath);
-
-db.pragma("journal_mode = WAL");
-
-db.exec(`
-    CREATE TABLE IF NOT EXISTS private_streaks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        channel_id TEXT NOT NULL,
-        member_ids TEXT NOT NULL,
-        streak_count INTEGER DEFAULT 1,
-        last_active_date TEXT
-    );
-`);
+const pool = require("./db");
 
 function parseMemberIds(raw) {
     try {
@@ -31,66 +9,74 @@ function parseMemberIds(raw) {
     }
 }
 
-function insertPrivateStreak(channelId, memberIds, streakCount, lastActiveDate) {
-    return db.prepare(`
+async function insertPrivateStreak(channelId, memberIds, streakCount, lastActiveDate) {
+    return pool.query(`
         INSERT INTO private_streaks (channel_id, member_ids, streak_count, last_active_date)
-        VALUES (?, ?, ?, ?)
-    `).run(
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+    `, [
         channelId,
         JSON.stringify(memberIds),
         streakCount,
         lastActiveDate
-    );
+    ]);
 }
 
-function getAllPrivateStreaks() {
-    return db.prepare(`
+async function getAllPrivateStreaks() {
+    const result = await pool.query(`
         SELECT *
         FROM private_streaks
         ORDER BY id DESC
-    `).all();
+    `);
+
+    return result.rows;
 }
 
-function getStreaksByUserId(userId) {
-    return getAllPrivateStreaks().filter((row) => {
+async function getStreaksByUserId(userId) {
+    const rows = await getAllPrivateStreaks();
+
+    return rows.filter((row) => {
         return parseMemberIds(row.member_ids).includes(String(userId));
     });
 }
 
-function getStreakByMembers(memberIds) {
+async function getStreakByMembers(memberIds) {
     const target = [...memberIds].map(String).sort().join(",");
+    const rows = await getAllPrivateStreaks();
 
-    return getAllPrivateStreaks().find((row) => {
+    return rows.find((row) => {
         const current = parseMemberIds(row.member_ids).slice().sort().join(",");
         return current === target;
     }) || null;
 }
 
-function getStreakByChannelId(channelId) {
-    return db.prepare(`
+async function getStreakByChannelId(channelId) {
+    const result = await pool.query(`
         SELECT *
         FROM private_streaks
-        WHERE channel_id = ?
-    `).get(channelId);
+        WHERE channel_id = $1
+    `, [channelId]);
+
+    return result.rows[0] || null;
 }
 
-function updateStreakProgress(channelId, streakCount, lastActiveDate) {
-    return db.prepare(`
+async function updateStreakProgress(channelId, streakCount, lastActiveDate) {
+    return pool.query(`
         UPDATE private_streaks
-        SET streak_count = ?, last_active_date = ?
-        WHERE channel_id = ?
-    `).run(streakCount, lastActiveDate, channelId);
+        SET streak_count = $1, last_active_date = $2
+        WHERE channel_id = $3
+    `, [streakCount, lastActiveDate, channelId]);
 }
 
-function deleteStreakByChannelId(channelId) {
-    return db.prepare(`
+async function deleteStreakByChannelId(channelId) {
+    return pool.query(`
         DELETE FROM private_streaks
-        WHERE channel_id = ?
-    `).run(channelId);
+        WHERE channel_id = $1
+    `, [channelId]);
 }
 
 module.exports = {
-    db,
+    db: pool,
     parseMemberIds,
     insertPrivateStreak,
     getAllPrivateStreaks,
