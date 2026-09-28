@@ -101,7 +101,7 @@ module.exports = {
             }
 
             const memberIds = streakService.uniqueMemberIds([inviterId, ...targetIds]);
-            const existing = await streakService.db.getStreakByMembers(memberIds);
+            const existing = streakService.db.getStreakByMembers(memberIds);
 
             if (existing) {
                 const existingChannel = guild.channels.cache.get(existing.channel_id);

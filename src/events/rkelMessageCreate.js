@@ -59,7 +59,7 @@ module.exports = {
         }
 
         try {
-            const result = await rkelService.generateGroups(
+            const result = rkelService.generateGroups(
                 parsed.maxMembers,
                 parsed.skipNames,
                 parsed.addNames

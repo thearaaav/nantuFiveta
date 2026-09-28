@@ -59,7 +59,7 @@ module.exports = {
 
         const content = message.content.trim();
         const isStreakCommand = content === "n!streak" || content.startsWith("n!streak ");
-        const currentRoom = await streakService.db.getStreakByChannelId(message.channel.id);
+        const currentRoom = streakService.db.getStreakByChannelId(message.channel.id);
 
         if (!isStreakCommand) {
             if (currentRoom) {
@@ -94,7 +94,7 @@ module.exports = {
             }
 
             if (rest.toLowerCase() === "-show") {
-                const rooms = await streakService.db.getStreaksByUserId(message.author.id);
+                const rooms = streakService.db.getStreaksByUserId(message.author.id);
 
                 if (!rooms.length) {
                     return message.reply("❌ Kamu belum memiliki private streak room.");

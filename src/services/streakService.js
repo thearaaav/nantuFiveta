@@ -163,7 +163,7 @@ async function createPrivateStreakChannel(guild, inviterMember, memberIds) {
     });
 
     const lastActiveDate = getTodayWita();
-    await streakDb.insertPrivateStreak(channel.id, memberIds, 1, lastActiveDate);
+    streakDb.insertPrivateStreak(channel.id, memberIds, 1, lastActiveDate);
 
     const welcomeEmbed = new EmbedBuilder()
         .setColor(0xff6b35)
@@ -201,7 +201,7 @@ async function expireStreak(client, room, reason = "Api streak padam") {
             });
         }
 
-        await streakDb.deleteStreakByChannelId(room.channel_id);
+        streakDb.deleteStreakByChannelId(room.channel_id);
 
         const expiredEmbed = new EmbedBuilder()
             .setColor(0xe74c3c)
@@ -234,7 +234,7 @@ async function handleStreakActivity(message, room) {
 
     if (room.last_active_date === yesterday) {
         const nextCount = (room.streak_count || 1) + 1;
-        await streakDb.updateStreakProgress(message.channel.id, nextCount, today);
+        streakDb.updateStreakProgress(message.channel.id, nextCount, today);
         room.streak_count = nextCount;
         room.last_active_date = today;
         await syncStreakChannelName(message.channel, room);
@@ -244,7 +244,7 @@ async function handleStreakActivity(message, room) {
 async function expireInactiveStreaks(client) {
     const today = getTodayWita();
     const yesterday = getYesterdayWita();
-    const rooms = await streakDb.getAllPrivateStreaks();
+    const rooms = streakDb.getAllPrivateStreaks();
 
     for (const room of rooms) {
         if (isStreakAlive(room.last_active_date, today, yesterday)) continue;
@@ -253,7 +253,7 @@ async function expireInactiveStreaks(client) {
 }
 
 async function deleteStreakRoom(channel, room, reason = "Streak dihapus") {
-    await streakDb.deleteStreakByChannelId(channel.id);
+    streakDb.deleteStreakByChannelId(channel.id);
     await channel.delete(reason);
 }
 
