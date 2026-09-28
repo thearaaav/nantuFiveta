@@ -85,6 +85,7 @@ async function initDatabase() {
         console.log("✅ PostgreSQL Railway database siap (seluruh tabel & indeks terverifikasi).");
     } catch (err) {
         console.error("❌ Gagal inisialisasi tabel PostgreSQL:", err?.message || err);
+        throw err;
     }
 }
 

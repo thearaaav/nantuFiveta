@@ -6,9 +6,13 @@ const { Client } = require('pg');
 const dbPath = 'D:/nantuFive/data/database.db';
 const dbSqlite = new sqlite3.Database(dbPath);
 
-// Connection String Public Railway
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+    throw new Error('DATABASE_URL tidak ditemukan di Environment Variables.');
+}
+
 const pgClient = new Client({
-    connectionString: 'postgresql://postgres:TzQJTbQnipUdXzeHGRkspUBOGUTfdpoC@switchyard.proxy.rlwy.net:39948/railway',
+    connectionString: databaseUrl,
     ssl: { rejectUnauthorized: false }
 });
 

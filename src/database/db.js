@@ -4,7 +4,7 @@ const { Pool } = require("pg");
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-    console.error("❌ ERROR: DATABASE_URL tidak ditemukan di Environment Variables!");
+    throw new Error("DATABASE_URL tidak ditemukan di Environment Variables!");
 }
 
 // Cek apakah koneksi menggunakan URL internal Railway (.railway.internal)
