@@ -7,6 +7,12 @@ const reminderService =
 const scheduleService =
     require("../services/scheduleService");
 
+const chemistryService =
+    require("../services/chemistryService");
+
+const lmsService =
+    require("../lms/lmsService");
+
 function startReminderScheduler(client){
 
 
@@ -135,6 +141,10 @@ await scheduleService.sendSchedule(client);
             console.log(
                 "✅ Reminder berhasil dicek."
             );
+
+            chemistryService.startVoiceTracker(client);
+
+            lmsService.startLmsScheduler(client);
 
 
         } catch(err){

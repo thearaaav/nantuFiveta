@@ -9,17 +9,26 @@ const SCHEDULE_TEXT =
 "**Jadwal Kuliah**\n" +
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
 "**Senin**:\n" +
-"07:30 - 10:00 | SG 5  | Sistem Informasi Geografi\n" +
+"07:30 - 10:00 | SG 5  | Sistem Informasi Geografis\n" +
 "15:30 - 17:30 | JTI 2 | Arsitektur Sistem Komputer\n" +
 "────────────────────────────────────────\n" +
 "**Selasa**:\n" +
 "07:30 - 10:00 | SG 4  | Rekayasa API                \n" +
 "10:00 - 12:00 | JTI 3 | Interaksi Manusia Komputer  \n" +
 "13:00 - 15:30 | SG 5  | Basis Data                  \n" +
+"15:30 - 18:00 | SG -  | Rekayasa Perangkat Lunak\n" +
 "────────────────────────────────────────\n" +
 "**Kamis**:\n" +
 "10:10 - 11:30 | JTI 2 | Kajian Lingkungan Hidup\n" +
-"15:30 - 18:00 | SG -  | Rekayasa Perangkat Lunak\n" +
+"\n" +
+"**Jadwal Praktikum**\n" +
+"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+"**Rabu**:\n" +
+"13.00 | Sistem Informasi Geografis\n" +
+"??.?? | Interaksi Manusia Komputer\n" +
+"────────────────────────────────────────\n" +
+"**Kamis**:\n" +
+"14:30 | Basis Data\n" +
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
 "**Catatan**: kurangilah bermain gem onlien\n" +
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
