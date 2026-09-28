@@ -35,54 +35,77 @@ async function fetchLmsData(forceRefresh = false) {
 }
 
 /**
- * Mengirim embed notifikasi untuk materi atau tugas baru disertai tag role Kelas A
+ * Mengirim embed notifikasi untuk MATERI baru ke channel LMS (tanpa tag role)
  * @param {import("discord.js").TextChannel} channel
- * @param {{ moduleId: string, courseName: string, title: string, type: 'TUGAS' | 'MATERI', link: string, deadlineText?: string }} item
+ * @param {{ moduleId: string, courseName: string, title: string, link: string }} item
  */
-async function sendDiscordNotification(channel, item) {
-    const isTugas = item.type === "TUGAS";
+async function sendMaterialNotification(channel, item) {
+    const embed = new EmbedBuilder()
+        .setTitle("📘 Materi Baru LMS")
+        .setColor(0x2ecc71)
+        .addFields([
+            { name: "📚 Mata Kuliah", value: `**${item.courseName}**`, inline: false },
+            { name: "📄 Judul Materi", value: item.title, inline: false },
+            { name: "🔗 Link LMS", value: `[Klik di sini untuk membuka di LMS](${item.link})`, inline: false }
+        ])
+        .setTimestamp()
+        .setFooter({ text: "LMS Vibel Fatek Untad Notifier" });
+
+    await channel.send({ embeds: [embed] });
+}
+
+/**
+ * Mengirim embed notifikasi untuk TUGAS baru ke:
+ *  - #daftar-tugas  (tanpa mention)
+ *  - #pengumuman    (dengan tag role Anak TI A 25)
+ * @param {import("discord.js").Client} client
+ * @param {{ moduleId: string, courseName: string, title: string, link: string, deadlineText?: string }} item
+ */
+async function sendTaskNotification(client, item) {
+    const { taskListChannel, taskNotifChannel } = require("../config/channels");
     const roleId = process.env.LMS_CLASS_A_ROLE_ID || "1451492469287026708";
 
     const fields = [
-        {
-            name: "📚 Mata Kuliah",
-            value: `**${item.courseName}**`,
-            inline: false
-        },
-        {
-            name: isTugas ? "📋 Judul Tugas" : "📄 Judul Materi",
-            value: item.title,
-            inline: false
-        }
+        { name: "📚 Mata Kuliah", value: `**${item.courseName}**`, inline: false },
+        { name: "📋 Judul Tugas", value: item.title, inline: false }
     ];
 
-    if (isTugas && item.deadlineText) {
-        fields.push({
-            name: "⏰ Batas Waktu (Deadline)",
-            value: `**${item.deadlineText}**`,
-            inline: false
-        });
+    if (item.deadlineText) {
+        fields.push({ name: "⏰ Batas Waktu (Deadline)", value: `**${item.deadlineText}**`, inline: false });
     }
 
-    fields.push({
-        name: "🔗 Link LMS",
-        value: `[Klik di sini untuk membuka di LMS](${item.link})`,
-        inline: false
-    });
+    fields.push({ name: "🔗 Link LMS", value: `[Klik di sini untuk membuka di LMS](${item.link})`, inline: false });
 
     const embed = new EmbedBuilder()
-        .setTitle(isTugas ? "📝 Tugas Baru LMS" : "📘 Materi Baru LMS")
-        .setColor(isTugas ? 0xe74c3c : 0x2ecc71)
+        .setTitle("📝 Tugas Baru LMS")
+        .setColor(0xe74c3c)
         .addFields(fields)
         .setTimestamp()
         .setFooter({ text: "LMS Vibel Fatek Untad Notifier" });
 
-    // Tag role anggota kelas A
-    const mentionContent = roleId ? `<@&${roleId}>` : "";
-    await channel.send({
-        content: mentionContent || undefined,
-        embeds: [embed]
-    });
+    // 1. Kirim ke #daftar-tugas (tanpa mention)
+    const listChannel = await client.channels.fetch(taskListChannel).catch(() => null);
+    if (listChannel) {
+        await listChannel.send({ embeds: [embed] }).catch((e) =>
+            console.error("❌ Gagal kirim tugas ke #daftar-tugas:", e?.message)
+        );
+    } else {
+        console.warn(`⚠️ Channel #daftar-tugas [${taskListChannel}] tidak ditemukan.`);
+    }
+
+    // 2. Kirim ke #pengumuman (dengan tag role kelas A)
+    const notifChannel = await client.channels.fetch(taskNotifChannel).catch(() => null);
+    if (notifChannel) {
+        const mention = roleId ? `<@&${roleId}>` : "";
+        await notifChannel.send({
+            content: mention || undefined,
+            embeds: [embed]
+        }).catch((e) =>
+            console.error("❌ Gagal kirim tugas ke #pengumuman:", e?.message)
+        );
+    } else {
+        console.warn(`⚠️ Channel #pengumuman [${taskNotifChannel}] tidak ditemukan.`);
+    }
 }
 
 /**
@@ -95,39 +118,46 @@ async function runLmsCheck(client) {
         return;
     }
 
-    const channelId = process.env.LMS_DISCORD_CHANNEL_ID;
-    if (!channelId) return;
+    const materiChannelId = process.env.LMS_DISCORD_CHANNEL_ID;
+    if (!materiChannelId) return;
 
     isScrapingRunning = true;
 
     try {
         console.log("🔍 Memulai pengecekan pembaruan LMS (Kursusku)...");
 
-        const channel = await client.channels.fetch(channelId).catch(() => null);
-        if (!channel) {
-            console.error(`❌ LMS Notifier: Discord channel [${channelId}] tidak ditemukan.`);
-            return;
+        // Channel materi (#lms)
+        const materiChannel = await client.channels.fetch(materiChannelId).catch(() => null);
+        if (!materiChannel) {
+            console.warn(`⚠️ LMS Notifier: Channel materi [${materiChannelId}] tidak ditemukan.`);
         }
 
-        // Ambil data terbaru dari 6 mata kuliah Kursusku
+        // Ambil data terbaru dari mata kuliah Kursusku
         const { courses, modules } = await fetchLmsData(true);
         let newCount = 0;
 
         for (const item of modules) {
             // Cek apakah modul sudah pernah disimpan/dinotifikasi sebelumnya
-            if (!lmsDb.isModuleNotified(item.moduleId)) {
-                // Jika tugas dan sudah lewat deadline, tandai di DB agar tidak di-spam, tapi jangan kirim ke Discord
+            if (!(await lmsDb.isModuleNotified(item.moduleId))) {
+                // Jika tugas sudah lewat deadline: tandai di DB agar tidak di-spam, tapi jangan kirim ke Discord
                 if (item.type === "TUGAS" && item.isExpired) {
-                    lmsDb.saveNotifiedModule(item);
+                    await lmsDb.saveNotifiedModule(item);
                     continue;
                 }
 
-                // Simpan ke DB dan kirim notifikasi
-                lmsDb.saveNotifiedModule(item);
-                await sendDiscordNotification(channel, item);
+                // Simpan ke DB terlebih dahulu
+                await lmsDb.saveNotifiedModule(item);
+
+                // Kirim notifikasi ke channel yang sesuai
+                if (item.type === "TUGAS") {
+                    await sendTaskNotification(client, item);
+                } else if (item.type === "MATERI" && materiChannel) {
+                    await sendMaterialNotification(materiChannel, item);
+                }
+
                 newCount++;
 
-                // Jeda 500ms antar pesan
+                // Jeda 500ms antar pesan agar tidak rate-limited
                 await new Promise((r) => setTimeout(r, 500));
             }
         }
@@ -251,7 +281,8 @@ async function getCourseMaterials(courseQuery = "") {
 module.exports = {
     startLmsScheduler,
     runLmsCheck,
-    sendDiscordNotification,
+    sendMaterialNotification,
+    sendTaskNotification,
     fetchLmsData,
     getActiveAssignments,
     getCourseMaterials

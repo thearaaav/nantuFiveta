@@ -159,8 +159,8 @@ function splitIntoGroups(shuffled, maxMembers) {
 /**
  * Menjalankan pengacakan kelompok dari database + filter sesi
  */
-function generateGroups(maxMembers, skipNames = [], addNames = []) {
-    const students = getAllStudents();
+async function generateGroups(maxMembers, skipNames = [], addNames = []) {
+    const students = await getAllStudents();
     const { participants, skipped, added } = buildParticipantList(students, skipNames, addNames);
 
     const shuffled = fisherYatesShuffle(participants);

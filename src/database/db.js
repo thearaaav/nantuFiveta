@@ -1,9 +1,8 @@
-require("dotenv").config(); // Memastikan file .env terbaca saat dijalankan di komputer lokal
+require("dotenv").config();
 const { Pool } = require("pg");
 
 const connectionString = process.env.DATABASE_URL;
 
-// Peringatan awal jika DATABASE_URL tidak terdeteksi
 if (!connectionString) {
     console.error("❌ ERROR: DATABASE_URL tidak ditemukan di Environment Variables!");
 }
@@ -13,8 +12,13 @@ const isInternalRailway = connectionString?.includes("railway.internal");
 
 const pool = new Pool({
     connectionString: connectionString,
-  // Matikan SSL jika pakai jaringan internal Railway, aktifkan SSL jika dari luar (Public URL / Lokal)
+    // Matikan SSL jika pakai jaringan internal Railway, aktifkan SSL jika dari luar (Public URL / Lokal)
     ssl: isInternalRailway ? false : { rejectUnauthorized: false },
 });
 
+// Helper query function
+const query = (text, params) => pool.query(text, params);
+
 module.exports = pool;
+module.exports.pool = pool;
+module.exports.query = query;
