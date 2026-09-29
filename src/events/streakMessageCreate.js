@@ -36,11 +36,12 @@ function buildShowcaseEmbed(user, rooms, guild) {
     const lines = rooms.map((room) => {
         const memberIds = streakService.db.parseMemberIds(room.member_ids);
         const channel = guild.channels.cache.get(room.channel_id);
-        const channelText = channel ? `<#${room.channel_id}>` : `\`channel hilang (${room.channel_id})\``;
+        const channelText = channel ? `<#${room.channel_id}>` : `\`channel (${room.channel_id})\``;
         const membersText = memberIds.map((id) => `<@${id}>`).join(" ");
-        const streakText = `🔥 ${room.streak_count || 1} Hari`;
+        const statusText = room.status === "grace" ? "⚠️ Masa Tenggang" : "🔥 Aktif";
+        const graceLeft = Math.max(0, 3 - (room.grace_used || 0));
 
-        return `${channelText}\nAnggota: ${membersText}\nStreak: **${streakText}**`;
+        return `${channelText}\nAnggota: ${membersText}\nStreak: **🔥 ${room.streak_count || 1} Hari** (${statusText}) • Sisa Tenggang: **${graceLeft}/3**`;
     });
 
     return new EmbedBuilder()
@@ -75,6 +76,27 @@ module.exports = {
         const rest = content.slice("n!streak".length).trim();
 
         try {
+            if (currentRoom && rest === "") {
+                await streakService.handleStreakActivity(message, currentRoom);
+                const memberIds = streakService.db.parseMemberIds(currentRoom.member_ids);
+                const statusText = currentRoom.status === "grace" ? "⚠️ Masa Tenggang (2 Hari)" : "🔥 Aktif";
+                const graceLeft = Math.max(0, 3 - (currentRoom.grace_used || 0));
+
+                const infoEmbed = new EmbedBuilder()
+                    .setColor(currentRoom.status === "grace" ? 0xe74c3c : 0xff6b35)
+                    .setTitle("🔥 Status Room Streak")
+                    .setDescription(
+                        `👥 **Anggota:** ${memberIds.map((id) => `<@${id}>`).join(" ")}\n` +
+                        `🔥 **Current Streak:** **${currentRoom.streak_count || 1} Hari**\n` +
+                        `📊 **Status:** ${statusText}\n` +
+                        `🛡️ **Sisa Kuota Masa Tenggang:** **${graceLeft} / 3 kali**\n` +
+                        `📅 **Aktivitas Terakhir:** ${currentRoom.last_active_date || "Hari ini"}`
+                    )
+                    .setFooter({ text: "Kirim pesan setiap hari untuk menjaga api tetap menyala." });
+
+                return message.reply({ embeds: [infoEmbed] });
+            }
+
             if (rest.toLowerCase() === "-del") {
                 if (!currentRoom) {
                     return message.reply("❌ `n!streak -del` hanya bisa dipakai di dalam channel streak.");

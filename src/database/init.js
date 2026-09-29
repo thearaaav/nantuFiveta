@@ -55,8 +55,17 @@ async function initDatabase() {
             channel_id TEXT NOT NULL,
             member_ids TEXT NOT NULL,
             streak_count INTEGER DEFAULT 1,
-            last_active_date TEXT
+            last_active_date DATE,
+            status VARCHAR(20) DEFAULT 'active',
+            grace_used INTEGER DEFAULT 0,
+            grace_start_date DATE,
+            last_warning_date DATE
         );
+
+        ALTER TABLE private_streaks ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
+        ALTER TABLE private_streaks ADD COLUMN IF NOT EXISTS grace_used INTEGER DEFAULT 0;
+        ALTER TABLE private_streaks ADD COLUMN IF NOT EXISTS grace_start_date DATE;
+        ALTER TABLE private_streaks ADD COLUMN IF NOT EXISTS last_warning_date DATE;
 
         CREATE TABLE IF NOT EXISTS lms_notified_modules (
             module_id TEXT PRIMARY KEY,

@@ -25,7 +25,7 @@ const SCHEDULE_TEXT =
 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
 "**Rabu**:\n" +
 "13.00 | Sistem Informasi Geografis\n" +
-"??.?? | Interaksi Manusia Komputer\n" +
+"15.30 | Interaksi Manusia Komputer\n" +
 "────────────────────────────────────────\n" +
 "**Kamis**:\n" +
 "14:30 | Basis Data\n" +
